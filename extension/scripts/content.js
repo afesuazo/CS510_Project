@@ -20,7 +20,6 @@ function attemptToExtractComments() {
     console.log("Extracting comments");
     const topComments = extractTopComments();
     if (topComments.length > 0) {
-      console.log("Sending comments to the backend");
       sendCommentsToBackground(topComments);
     }
     else {

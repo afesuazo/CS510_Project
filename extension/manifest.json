@@ -3,9 +3,14 @@
   "description": "Provides Media Search Recommendations",
   "version": "1.0",
   "manifest_version": 3,
-    "permissions": [
-    "storage"
+  "permissions": [
+    "storage",
+    "activeTab",
+    "https://www.youtube.com/*"
   ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
   "content_scripts": [
     {
       "js": ["scripts/content.js"],
