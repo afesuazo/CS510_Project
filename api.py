@@ -3,6 +3,7 @@ from transformers import (
     TokenClassificationPipeline, AutoModelForTokenClassification, AutoTokenizer
 )
 from transformers.pipelines import AggregationStrategy
+from flask_cors import CORS, cross_origin
 import os
 
 app = Flask(__name__)
@@ -40,6 +41,7 @@ model, tokenizer = load_model_and_tokenizer(model_name, model_directory)
 extractor = TokenClassificationPipeline(model=model, tokenizer=tokenizer, aggregation_strategy=AggregationStrategy.FIRST)
 
 @app.route('/extract', methods=['POST'])
+@cross_origin(supports_credentials=True)
 def extract_keywords():
     data = request.json
     text = data['text']
