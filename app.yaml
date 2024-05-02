@@ -10,7 +10,7 @@ automatic_scaling:
 
 env_variables:
   MODEL_NAME: "ml6team/keyphrase-extraction-kbir-inspec"
-  MODEL_DIRECTORY: "./model"
+  MODEL_DIRECTORY: "model"
 
 runtime_config:
   python_version: 3.10
