@@ -1,7 +1,10 @@
+import json
 import logging
+from datetime import timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+import requests
 import yaml
 from flask import Flask, request, jsonify
 from transformers import (
@@ -10,10 +13,11 @@ from transformers import (
 from transformers.pipelines import AggregationStrategy
 from flask_cors import CORS, cross_origin
 
+import redis
+
 # ----  Set up logging ----
 log_directory = Path(__file__).parent / 'logs'
 log_directory.mkdir(exist_ok=True)
-
 
 # Flask logs
 flask_log_file = log_directory / 'flask.log'
@@ -43,6 +47,7 @@ MODEL_NAME = config['env_variables']['MODEL_NAME']
 MODEL_DIRECTORY = Path.cwd() / config['env_variables']['MODEL_DIRECTORY']
 
 app = Flask(__name__)
+redis_client = redis.Redis(host='localhost', port=6379)
 
 
 # Check if the model and tokenizer are downloaded
@@ -69,6 +74,71 @@ def load_model_and_tokenizer(model_name: str, model_directory: Path):
     return model, tokenizer
 
 
+def search_top_video(search_query: str) -> dict:
+    # Check cache first
+    cached_video = redis_client.get(search_query)
+    if cached_video:
+        return json.loads(cached_video)
+
+    # Use the YouTube search API to get the top video
+    url = f'{config["env_variables"]["YOUTUBE_API_URL"]}/search?part=snippet&maxResults=1&&order=relevance&q={search_query}&key={config["env_variables"]["API_KEY"]}'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        '''
+        Sample response:
+        {
+          "kind": "youtube#searchListResponse",
+          "etag": etag,
+          "nextPageToken": string,
+          "prevPageToken": string,
+          "regionCode": string,
+          "pageInfo": {
+            "totalResults": integer,
+            "resultsPerPage": integer
+          },
+          "items": [
+            search Resource
+          ]
+        }
+        '''
+
+        app_logger.debug(f"Search query: {search_query}")
+        app_logger.debug(f"Top video: {data['items']}")
+
+        # Make sure we have at least one video
+        # If video has less than 1000 views, it is not relevant
+        if not data['items']:
+            app_logger.debug(f"No relevant video found for {search_query}")
+            return {}
+
+        # Get the video thumbnail, url, and title
+        print(data['items'][0])
+        video_title = data['items'][0]['snippet']['title']
+        video_thumbnail = data['items'][0]['snippet']['thumbnails']['default']['url']
+        video_id = data['items'][0]['id']['videoId']
+        video_published_at = data['items'][0]['snippet']['publishedAt']
+        video_cahnnel_title = data['items'][0]['snippet']['channelTitle']
+        video_url = f'https://www.youtube.com/watch?v={video_id}'
+        video_data = {
+            'title': video_title,
+            'thumbnail': video_thumbnail,
+            'url': video_url,
+            'published_at': video_published_at,
+            'channel_title': video_cahnnel_title
+        }
+
+        # Cache the video data
+        redis_client.setex(search_query, timedelta(hours=1), json.dumps(video_data))
+        return video_data
+
+    except requests.exceptions.RequestException as e:
+        app_logger.error(f"Error fetching data from YouTube API: {e}")
+        return {}
+
+
 # Load the model and tokenizer
 model, tokenizer = load_model_and_tokenizer(MODEL_NAME, MODEL_DIRECTORY)
 extractor = TokenClassificationPipeline(model=model, tokenizer=tokenizer,
@@ -83,10 +153,25 @@ def extract_keywords():
     text = data['text']
     text = text.replace("\n", " ")
     outputs = extractor(text)
+    app_logger.debug(f"Extracted outputs: {outputs}")
     keywords = [result.get("word").strip() for result in outputs]
     app_logger.debug(f"Extracted keywords: {keywords}")
-    return jsonify(keywords)
+
+    recommendations = []
+
+    if keywords:
+        for keyword in keywords:
+            video = search_top_video(keyword)
+            app_logger.debug(f"Top video for keyword '{keyword}': {video}")
+            if not video:
+                continue
+            # insert keyword into dictionary
+            video['keyword'] = keyword
+            recommendations.append(video)
+
+    return jsonify(recommendations)
 
 
 if __name__ == '__main__':
+    redis_client.flushall()
     app.run(port=8000, debug=True)
