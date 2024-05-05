@@ -115,14 +115,19 @@ def search_top_video(search_query: str) -> dict:
             return {}
 
         # Get the video thumbnail, url, and title
+        print(data['items'][0])
         video_title = data['items'][0]['snippet']['title']
         video_thumbnail = data['items'][0]['snippet']['thumbnails']['default']['url']
         video_id = data['items'][0]['id']['videoId']
+        video_published_at = data['items'][0]['snippet']['publishedAt']
+        video_cahnnel_title = data['items'][0]['snippet']['channelTitle']
         video_url = f'https://www.youtube.com/watch?v={video_id}'
         video_data = {
             'title': video_title,
             'thumbnail': video_thumbnail,
             'url': video_url,
+            'published_at': video_published_at,
+            'channel_title': video_cahnnel_title
         }
 
         # Cache the video data

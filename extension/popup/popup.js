@@ -1,22 +1,39 @@
 // Card with video thumbnail and title
 function createTopVideoCard(videoData) {
     console.log('Creating video card for', videoData);
-    const clickable_card = document.createElement('a');
-    clickable_card.href = videoData.url;
-    clickable_card.target = '_blank';
-    clickable_card.className = 'video-card';
+    const clickableCard = document.createElement('a');
+    clickableCard.href = videoData.url;
+    clickableCard.target = '_blank';
+    clickableCard.className = 'video-card';
 
     const title = document.createElement('h2');
     title.textContent = videoData.title;
-    clickable_card.appendChild(title);
+
+    const infoContainer = document.createElement('div');
+    infoContainer.className = 'video-info';
+
+    const channel = document.createElement('span');
+    channel.textContent =videoData.channel_title;
+    channel.className = 'video-channel';
+
+    const date = document.createElement('span');
+    date.textContent = videoData.published_at;
+    date.className = 'video-date';
+
+
+    infoContainer.appendChild(channel);
+    infoContainer.appendChild(date);
 
     const thumbnail = document.createElement('img');
     thumbnail.src = videoData.thumbnail;
     thumbnail.alt = videoData.title + ' thumbnail';
     thumbnail.style.width = '100%';
-    clickable_card.appendChild(thumbnail);
 
-    return clickable_card;
+    clickableCard.appendChild(title);
+    clickableCard.appendChild(infoContainer);
+    clickableCard.appendChild(thumbnail);
+
+    return clickableCard;
 }
 
 
@@ -42,11 +59,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 a.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(recommendation.keyword)}`;
                 a.target = '_blank';
                 a.textContent = recommendation.keyword;
+                a.className = 'keyword-link';
                 container.appendChild(a);
 
                 const videoToggleButton = document.createElement('button');
                 videoToggleButton.className = 'toggle-button';
-                videoToggleButton.innerHTML = 'Top Video <img src="../images/eye.png" alt="Show Video">';
+                videoToggleButton.innerHTML = '<img src="../images/dropdown.png" alt="Show Video">';
                 container.appendChild(videoToggleButton);
 
                 li.appendChild(container);
