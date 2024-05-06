@@ -1,3 +1,10 @@
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); 
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Card with video thumbnail and title
 function createTopVideoCard(videoData) {
     console.log('Creating video card for', videoData);
@@ -17,7 +24,7 @@ function createTopVideoCard(videoData) {
     channel.className = 'video-channel';
 
     const date = document.createElement('span');
-    date.textContent = videoData.published_at;
+    date.textContent = formatDate(new Date(videoData.published_at));
     date.className = 'video-date';
 
 
