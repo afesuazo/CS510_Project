@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -46,8 +46,11 @@ config = load_config('app.yaml')
 MODEL_NAME = config['env_variables']['MODEL_NAME']
 MODEL_DIRECTORY = Path.cwd() / config['env_variables']['MODEL_DIRECTORY']
 
+# Specify redis
+REDIS_HOST = config['redis_host'] if 'redis_host' in config else "localhost"
+
 app = Flask(__name__)
-redis_client = redis.Redis(host='localhost', port=6379)
+redis_client = redis.Redis(host=REDIS_HOST, port=6379)
 
 
 # Check if the model and tokenizer are downloaded
@@ -110,7 +113,7 @@ def search_top_video(search_query: str) -> dict:
 
         # Make sure we have at least one video
         # If video has less than 1000 views, it is not relevant
-        if not data['items']:
+        if not data['items'] or 'videoId' not in data['items'][0]['id']:
             app_logger.debug(f"No relevant video found for {search_query}")
             return {}
 
